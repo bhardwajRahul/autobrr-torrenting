@@ -1,11 +1,12 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Field } from "formik";
+import { JSX } from "react";
+import { Field as FormikField } from "formik";
 import Select from "react-select";
-import { Switch } from "@headlessui/react";
+import { Field, Label, Description } from "@headlessui/react";
 import type { FieldProps, FieldValidator } from "formik";
 
 import { classNames } from "@utils";
@@ -13,10 +14,18 @@ import { useToggle } from "@hooks/hooks";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 
 import { SelectFieldProps } from "./select";
-import * as common from "./common";
 
 import { DocsTooltip } from "@components/tooltips/DocsTooltip";
 import { Checkbox } from "@components/Checkbox";
+import {
+  DropdownIndicator,
+  ErrorField, IndicatorSeparator,
+  RequiredField,
+  SelectControl,
+  SelectInput,
+  SelectMenu,
+  SelectOption
+} from "@components/inputs/common.tsx";
 
 interface TextFieldWideProps {
   name: string;
@@ -25,6 +34,7 @@ interface TextFieldWideProps {
   placeholder?: string;
   defaultValue?: string;
   required?: boolean;
+  disabled?: boolean;
   autoComplete?: string;
   hidden?: boolean;
   tooltip?: JSX.Element;
@@ -38,6 +48,7 @@ export const TextFieldWide = ({
   placeholder,
   defaultValue,
   required,
+  disabled,
   autoComplete,
   tooltip,
   hidden,
@@ -50,16 +61,17 @@ export const TextFieldWide = ({
           {tooltip ? (
             <DocsTooltip label={label}>{tooltip}</DocsTooltip>
           ) : label}
-          <common.RequiredField required={required} />
+          <RequiredField required={required} />
         </div>
       </label>
     </div>
     <div className="sm:col-span-2">
-      <Field
+      <FormikField
         name={name}
         value={defaultValue}
         required={required}
         validate={validate}
+        disabled={disabled}
       >
         {({ field, meta }: FieldProps) => (
           <input
@@ -68,11 +80,13 @@ export const TextFieldWide = ({
             type="text"
             value={field.value ? field.value : defaultValue ?? ""}
             onChange={field.onChange}
+            disabled={disabled}
             className={classNames(
               meta.touched && meta.error
                 ? "border-red-500 focus:ring-red-500 focus:border-red-500"
                 : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
-              "block w-full shadow-sm sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
+              "block w-full shadow-xs sm:text-sm rounded-md border py-2.5 dark:text-gray-100",
+              disabled ? "bg-gray-200 dark:bg-gray-700" : "bg-gray-100 dark:bg-gray-850 "
             )}
             placeholder={placeholder}
             hidden={hidden}
@@ -81,11 +95,11 @@ export const TextFieldWide = ({
             data-1p-ignore
           />
         )}
-      </Field>
+      </FormikField>
       {help && (
         <p className="mt-2 text-sm text-gray-500" id={`${name}-description`}>{help}</p>
       )}
-      <common.ErrorField name={name} classNames="block text-red-500 mt-2" />
+      <ErrorField name={name} classNames="block text-red-500 mt-2" />
     </div>
   </div>
 );
@@ -125,12 +139,12 @@ export const PasswordFieldWide = ({
             {tooltip ? (
               <DocsTooltip label={label}>{tooltip}</DocsTooltip>
             ) : label}
-            <common.RequiredField required={required} />
+            <RequiredField required={required} />
           </div>
         </label>
       </div>
       <div className="sm:col-span-2">
-        <Field
+        <FormikField
           name={name}
           defaultValue={defaultValue}
           validate={validate}
@@ -147,7 +161,7 @@ export const PasswordFieldWide = ({
                   meta.touched && meta.error
                     ? "border-red-500 focus:ring-red-500 focus:border-red-500"
                     : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
-                  "block w-full shadow-sm sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100 overflow-hidden pr-8"
+                  "block w-full shadow-xs sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100 overflow-hidden pr-8"
                 )}
                 placeholder={placeholder}
                 required={required}
@@ -159,11 +173,11 @@ export const PasswordFieldWide = ({
               </div>
             </div>
           )}
-        </Field>
+        </FormikField>
         {help && (
           <p className="mt-2 text-sm text-gray-500" id={`${name}-description`}>{help}</p>
         )}
-        <common.ErrorField name={name} classNames="block text-red-500 mt-2" />
+        <ErrorField name={name} classNames="block text-red-500 mt-2" />
       </div>
     </div>
   );
@@ -198,12 +212,12 @@ export const NumberFieldWide = ({
           {tooltip ? (
             <DocsTooltip label={label}>{tooltip}</DocsTooltip>
           ) : label}
-          <common.RequiredField required={required} />
+          <RequiredField required={required} />
         </div>
       </label>
     </div>
     <div className="sm:col-span-2">
-      <Field
+      <FormikField
         name={name}
         defaultValue={defaultValue ?? 0}
       >
@@ -218,7 +232,7 @@ export const NumberFieldWide = ({
               meta.touched && meta.error
                 ? "border-red-500 focus:ring-red-500 focus:border-red-500"
                 : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
-              "block w-full shadow-sm sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
+              "block w-full shadow-xs sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
             )}
             onWheel={(event) => {
               if (event.currentTarget === document.activeElement) {
@@ -229,11 +243,11 @@ export const NumberFieldWide = ({
             placeholder={placeholder}
           />
         )}
-      </Field>
+      </FormikField>
       {help && (
         <p className="mt-2 text-sm text-gray-500 dark:text-gray-500" id={`${name}-description`}>{help}</p>
       )}
-      <common.ErrorField name={name} classNames="block text-red-500 mt-2" />
+      <ErrorField name={name} classNames="block text-red-500 mt-2" />
     </div>
   </div>
 );
@@ -255,23 +269,23 @@ export const SwitchGroupWide = ({
   defaultValue
 }: SwitchGroupWideProps) => (
   <ul className="px-4 divide-y divide-gray-200 dark:divide-gray-700">
-    <Switch.Group as="li" className="py-4 flex items-center justify-between">
+    <Field as="li" className="py-4 flex items-center justify-between">
       <div className="flex flex-col">
-        <Switch.Label as="div" passive className="text-sm font-medium text-gray-900 dark:text-white">
+        <Label as="div" passive className="text-sm font-medium text-gray-900 dark:text-white">
           <div className="flex">
             {tooltip ? (
               <DocsTooltip label={label}>{tooltip}</DocsTooltip>
             ) : label}
           </div>
-        </Switch.Label>
+        </Label>
         {description && (
-          <Switch.Description className="text-sm text-gray-500 dark:text-gray-700">
+          <Description className="text-sm text-gray-500 dark:text-gray-500">
             {description}
-          </Switch.Description>
+          </Description>
         )}
       </div>
 
-      <Field
+      <FormikField
         name={name}
         defaultValue={defaultValue as boolean}
         type="checkbox"
@@ -288,8 +302,8 @@ export const SwitchGroupWide = ({
             }}
           />
         )}
-      </Field>
-    </Switch.Group>
+      </FormikField>
+    </Field>
   </ul>
 );
 
@@ -314,7 +328,7 @@ export const SelectFieldWide = ({
       </label>
     </div>
     <div className="sm:col-span-2">
-      <Field name={name} type="select">
+      <FormikField name={name} type="select">
         {({
           field,
           form: { setFieldValue }
@@ -325,12 +339,12 @@ export const SelectFieldWide = ({
             isClearable={true}
             isSearchable={true}
             components={{
-              Input: common.SelectInput,
-              Control: common.SelectControl,
-              Menu: common.SelectMenu,
-              Option: common.SelectOption,
-              IndicatorSeparator: common.IndicatorSeparator,
-              DropdownIndicator: common.DropdownIndicator
+              Input: SelectInput,
+              Control: SelectControl,
+              Menu: SelectMenu,
+              Option: SelectOption,
+              IndicatorSeparator: IndicatorSeparator,
+              DropdownIndicator: DropdownIndicator
             }}
             placeholder={optionDefaultText}
             styles={{
@@ -348,11 +362,18 @@ export const SelectFieldWide = ({
               }
             })}
             value={field?.value && field.value.value}
-            onChange={(option) => setFieldValue(field.name, option?.value ?? "")}
+            onChange={(newValue: unknown) => {
+              if (newValue) {
+                setFieldValue(field.name, (newValue as { value: string }).value);
+              }
+              else {
+                setFieldValue(field.name, "")
+              }
+            }}
             options={options}
           />
         )}
-      </Field>
+      </FormikField>
     </div>
   </div>
 );

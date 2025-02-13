@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -12,10 +12,24 @@ export function sleep(ms: number) {
 
 // get baseUrl sent from server rendered index template
 export function baseUrl() {
-  let baseUrl = "";
+  let baseUrl = "/";
   if (window.APP.baseUrl) {
     if (window.APP.baseUrl === "{{.BaseUrl}}") {
       baseUrl = "/";
+    } else {
+      baseUrl = window.APP.baseUrl;
+    }
+  }
+  return baseUrl;
+}
+
+// get routerBasePath sent from server rendered index template
+// routerBasePath is used for RouterProvider and does not need work with trailing slash
+export function routerBasePath() {
+  let baseUrl = "";
+  if (window.APP.baseUrl) {
+    if (window.APP.baseUrl === "{{.BaseUrl}}") {
+      baseUrl = "";
     } else {
       baseUrl = window.APP.baseUrl;
     }
@@ -84,6 +98,34 @@ export const get = <T> (obj: T, path: string|Array<any>, defValue?: string) => {
   return result === undefined ? defValue : result;
 };
 
+const UNITS = ['byte', 'kilobyte', 'megabyte', 'gigabyte', 'terabyte', 'petabyte']
+const BYTES_PER_KB = 1000
+
+
+/**
+ * Format bytes as human-readable text.
+ *
+ * @param sizeBytes Number of bytes.
+ *
+ * @return Formatted string.
+ */
+export function humanFileSize(sizeBytes: number | bigint): string {
+  let size = Math.abs(Number(sizeBytes))
+
+  let u = 0
+  while (size >= BYTES_PER_KB && u < UNITS.length - 1) {
+    size /= BYTES_PER_KB
+    ++u
+  }
+
+  return new Intl.NumberFormat([], {
+    style: 'unit',
+    unit: UNITS[u],
+    unitDisplay: 'short',
+    maximumFractionDigits: 1,
+  }).format(size)
+}
+
 export const RandomLinuxIsos = (count: number) => {
   const linuxIsos = [
     "ubuntu-20.04.4-lts-focal-fossa-desktop-amd64-secure-boot",
@@ -110,3 +152,39 @@ export const RandomLinuxIsos = (count: number) => {
 
   return Array.from({ length: count }, () => linuxIsos[Math.floor(Math.random() * linuxIsos.length)]);
 };
+
+export async function CopyTextToClipboard(text: string) {
+  if ("clipboard" in navigator) {
+     // Safari requires clipboard operations to be directly triggered by a user interaction.
+     // Using setTimeout with a delay of 0 ensures the clipboard operation is deferred until
+     // after the current call stack has cleared, effectively placing it outside of the
+     // immediate execution context of the user interaction event. This workaround allows
+     // the clipboard operation to bypass Safari's security restrictions.
+     setTimeout(async () => {
+       try {
+         await navigator.clipboard.writeText(text);
+         console.log("Text copied to clipboard successfully.");
+       } catch (err) {
+         console.error("Copy to clipboard unsuccessful: ", err);
+       }
+     }, 0);
+  } else {
+     // fallback for browsers that do not support the Clipboard API
+     copyTextToClipboardFallback(text);
+  }
+ }
+ 
+ function copyTextToClipboardFallback(text: string) {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+     document.execCommand('copy');
+     console.log("Text copied to clipboard successfully.");
+  } catch (err) {
+     console.error('Failed to copy text using fallback method: ', err);
+  }
+  document.body.removeChild(textarea);
+ }
+ 

@@ -1,34 +1,38 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Dialog, Transition } from "@headlessui/react";
+import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import { Fragment } from "react";
 import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import Select from "react-select";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "react-hot-toast";
 
 import { APIClient } from "@api/APIClient";
-import { notificationKeys } from "@screens/settings/Notifications";
+import { NotificationKeys } from "@api/query_keys";
 import { EventOptions, NotificationTypeOptions, SelectOption } from "@domain/constants";
 import { DEBUG } from "@components/debug";
 import { SlideOver } from "@components/panels";
 import { ExternalLink } from "@components/ExternalLink";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import * as common from "@components/inputs/common";
 import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import { Checkbox } from "@components/Checkbox";
 
 import { componentMapType } from "./DownloadClientForms";
+import { AddFormProps, UpdateFormProps } from "@forms/_shared";
 
 function FormFieldsDiscord() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
-        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+      <div className="px-4">
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          Settings
+        </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {"Create a "}
           <ExternalLink
@@ -54,8 +58,10 @@ function FormFieldsDiscord() {
 function FormFieldsNotifiarr() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
-        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+      <div className="px-4">
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          Settings
+        </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Enable the autobrr integration and optionally create a new API Key.
         </p>
@@ -73,8 +79,10 @@ function FormFieldsNotifiarr() {
 function FormFieldsLunaSea() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
-        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+      <div className="px-4">
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          Settings
+        </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
         LunaSea offers notifications across all devices linked to your account (User-Based) or to a single device without an account, using a unique webhook per device (Device-Based).
         </p>
@@ -103,8 +111,10 @@ function FormFieldsLunaSea() {
 function FormFieldsTelegram() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
-        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+      <div className="px-4">
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          Settings
+        </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {"Read how to "}
           <ExternalLink
@@ -132,6 +142,18 @@ function FormFieldsTelegram() {
         label="Message Thread ID"
         help="Message Thread (topic) of a Supergroup"
       />
+      <TextFieldWide
+        name="host"
+        label="Telegram Api Proxy"
+        help="Reverse proxy domain for api.telegram.org, only needs to be specified if the network you are using has blocked the Telegram API."
+        placeholder="http(s)://ip:port"
+      />
+      <TextFieldWide
+        name="username"
+        label="Sender"
+        help="Custom sender name to show at the top of a notification"
+        placeholder="autobrr"
+      />
     </div>
   );
 }
@@ -139,8 +161,10 @@ function FormFieldsTelegram() {
 function FormFieldsPushover() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
-        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+      <div className="px-4">
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          Settings
+        </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {"Register a new "}
           <ExternalLink
@@ -176,8 +200,10 @@ function FormFieldsPushover() {
 function FormFieldsGotify() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
-        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+      <div className="px-4">
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          Settings
+        </DialogTitle>
       </div>
 
       <TextFieldWide
@@ -197,12 +223,88 @@ function FormFieldsGotify() {
   );
 }
 
+function FormFieldsNtfy() {
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4">
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          Settings
+        </DialogTitle>
+      </div>
+
+      <TextFieldWide
+        name="host"
+        label="NTFY URL"
+        help="NTFY URL"
+        placeholder="https://ntfy.sh/mytopic"
+        required={true}
+      />
+
+      <TextFieldWide
+        name="username"
+        label="Username"
+        help="Username"
+      />
+
+      <PasswordFieldWide
+        name="password"
+        label="Password"
+        help="Password"
+      />
+
+      <PasswordFieldWide
+        name="token"
+        label="Access token"
+        help="Access token. Use this or Usernmae+password"
+      />
+
+      <NumberFieldWide
+        name="priority"
+        label="Priority"
+        help="Max 5, 4, 3 (default), 2, 1 Min"
+      />
+    </div>
+  );
+}
+
+function FormFieldsShoutrrr() {
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4">
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          Settings
+        </DialogTitle>
+      </div>
+
+      <TextFieldWide
+        name="host"
+        label="URL"
+        help="URL"
+        tooltip={
+          <div><p>See full documentation </p>
+            <ExternalLink
+              href="https://containrrr.dev/shoutrrr/services/overview/"
+              className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400"
+            >
+              Services
+            </ExternalLink>
+          </div>
+        }
+        placeholder="smtp://username:password@host:port/?from=fromAddress&to=recipient1"
+        required={true}
+      />
+    </div>
+  );
+}
+
 const componentMap: componentMapType = {
   DISCORD: <FormFieldsDiscord />,
   NOTIFIARR: <FormFieldsNotifiarr />,
   TELEGRAM: <FormFieldsTelegram />,
   PUSHOVER: <FormFieldsPushover />,
   GOTIFY: <FormFieldsGotify />,
+  NTFY: <FormFieldsNtfy />,
+  SHOUTRRR: <FormFieldsShoutrrr />,
   LUNASEA: <FormFieldsLunaSea />
 };
 
@@ -211,18 +313,13 @@ interface NotificationAddFormValues {
     enabled: boolean;
 }
 
-interface AddProps {
-    isOpen: boolean;
-    toggle: () => void;
-}
-
-export function NotificationAddForm({ isOpen, toggle }: AddProps) {
+export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
   const queryClient = useQueryClient();
 
   const createMutation = useMutation({
     mutationFn: (notification: ServiceNotification) => APIClient.notifications.create(notification),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: NotificationKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body="Notification added!" t={t} />);
       toggle();
@@ -252,7 +349,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
   };
 
   return (
-    <Transition.Root show={isOpen} as={Fragment}>
+    <Transition show={isOpen} as={Fragment}>
       <Dialog
         as="div"
         static
@@ -261,10 +358,8 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
         onClose={toggle}
       >
         <div className="absolute inset-0 overflow-hidden">
-          <Dialog.Overlay className="absolute inset-0" />
-
-          <div className="fixed inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
-            <Transition.Child
+          <DialogPanel className="absolute inset-y-0 right-0 max-w-full flex">
+            <TransitionChild
               as={Fragment}
               enter="transform transition ease-in-out duration-500 sm:duration-700"
               enterFrom="translate-x-full"
@@ -273,7 +368,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
               leaveFrom="translate-x-0"
               leaveTo="translate-x-full"
             >
-              <div className="w-screen max-w-2xl dark:border-gray-700 border-l">
+              <div className="w-screen max-w-2xl">
                 <Formik
                   enableReinitialize={true}
                   initialValues={{
@@ -281,7 +376,8 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                     type: "",
                     name: "",
                     webhook: "",
-                    events: []
+                    events: [],
+                    username: ""
                   }}
                   onSubmit={onSubmit}
                   validate={validate}
@@ -292,9 +388,9 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                         <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                           <div className="flex items-start justify-between space-x-3">
                             <div className="space-y-1">
-                              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
                                 Add Notifications
-                              </Dialog.Title>
+                              </DialogTitle>
                               <p className="text-sm text-gray-500 dark:text-gray-200">
                                 Trigger notifications on different events.
                               </p>
@@ -302,7 +398,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                             <div className="h-7 flex items-center">
                               <button
                                 type="button"
-                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                 onClick={toggle}
                               >
                                 <span className="sr-only">Close panel</span>
@@ -312,7 +408,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                           </div>
                         </div>
 
-                        <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
+                        <div className="flex flex-col space-y-4 px-1 pt-6 sm:py-0 sm:space-y-0">
                           <TextFieldWide
                             name="name"
                             label="Name"
@@ -381,17 +477,17 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
 
                           <SwitchGroupWide name="enabled" label="Enabled" />
 
-                          <div className="border-t mt-2 border-gray-200 dark:border-gray-700 py-4">
-                            <div className="px-4 space-y-1">
-                              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+                          <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+                            <div className="px-4">
+                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
                                 Events
-                              </Dialog.Title>
+                              </DialogTitle>
                               <p className="text-sm text-gray-500 dark:text-gray-400">
                                 Select what events to trigger on
                               </p>
                             </div>
 
-                            <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:gap-4 sm:py-4">
+                              <div className="p-4 sm:grid sm:gap-4">
                               <EventCheckBoxes />
                             </div>
                           </div>
@@ -399,25 +495,25 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                         {componentMap[values.type]}
                       </div>
 
-                      <div className="flex-shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4 sm:px-6">
+                      <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4 sm:px-6">
                         <div className="space-x-3 flex justify-end">
                           <button
                             type="button"
-                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                             onClick={() => testNotification(values)}
                           >
                             Test
                           </button>
                           <button
                             type="button"
-                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                             onClick={toggle}
                           >
                             Cancel
                           </button>
                           <button
                             type="submit"
-                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                           >
                             Save
                           </button>
@@ -429,48 +525,45 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                   )}
                 </Formik>
               </div>
-            </Transition.Child>
-          </div>
+            </TransitionChild>
+          </DialogPanel>
         </div>
       </Dialog>
-    </Transition.Root>
+    </Transition>
   );
 }
+
+const EventCheckBox = ({ event }: { event: typeof EventOptions[number] }) => (
+  <Field name="events">
+    {({ field, form }: FieldProps<string[]>) => (
+      <div className="flex items-center justify-between">
+        <span className="text-sm">
+          <span className="font-medium text-gray-900 dark:text-gray-100">{event.label}</span>
+          {event.description && <p className="text-gray-500">{event.description}</p>}
+        </span>
+        <Checkbox
+          value={field.value.includes(event.value)}
+          setValue={(checked) => 
+            form.setFieldValue('events', 
+              checked 
+                ? [...field.value, event.value]
+                : field.value.filter(e => e !== event.value)
+            )
+          }
+        />
+      </div>
+    )}
+  </Field>
+);
 
 const EventCheckBoxes = () => (
   <fieldset className="space-y-5">
     <legend className="sr-only">Notifications</legend>
-    {EventOptions.map((e, idx) => (
-      <div key={idx} className="relative flex items-start">
-        <div className="flex items-center h-5">
-          <Field
-            id={`events-${e.value}`}
-            aria-describedby={`events-${e.value}-description`}
-            name="events"
-            type="checkbox"
-            value={e.value}
-            className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-          />
-        </div>
-        <div className="ml-3 text-sm">
-          <label htmlFor={`events-${e.value}`}
-            className="font-medium text-gray-900 dark:text-gray-100">
-            {e.label}
-          </label>
-          {e.description && (
-            <p className="text-gray-500">{e.description}</p>
-          )}
-        </div>
-      </div>
+    {EventOptions.map((event, idx) => (
+      <EventCheckBox key={idx} event={event} />
     ))}
   </fieldset>
 );
-
-interface UpdateProps {
-    isOpen: boolean;
-    toggle: () => void;
-    notification: ServiceNotification;
-}
 
 interface InitialValues {
   id: number;
@@ -485,15 +578,17 @@ interface InitialValues {
   topic?: string;
   host?: string;
   events: NotificationEvent[];
+  username?: string
+  password?: string
 }
 
-export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateProps) {
+export function NotificationUpdateForm({ isOpen, toggle, data: notification }: UpdateFormProps<ServiceNotification>) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
     mutationFn: (notification: ServiceNotification) => APIClient.notifications.update(notification),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: NotificationKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body={`${notification.name} was updated successfully`} t={t}/>);
       toggle();
@@ -505,7 +600,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
   const deleteMutation = useMutation({
     mutationFn: (notificationID: number) => APIClient.notifications.delete(notificationID),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: notificationKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: NotificationKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body={`${notification.name} was deleted.`} t={t}/>);
     }
@@ -534,7 +629,9 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
     channel: notification.channel,
     topic: notification.topic,
     host: notification.host,
-    events: notification.events || []
+    events: notification.events || [],
+    username: notification.username,
+    password: notification.password
   };
 
   return (
@@ -552,7 +649,7 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
         <div>
           <TextFieldWide name="name" label="Name" required={true}/>
 
-          <div className="space-y-2 divide-y divide-gray-200 dark:divide-gray-700">
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
             <div className="py-4 flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
               <div>
                 <label
@@ -604,16 +701,17 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
               </div>
             </div>
             <SwitchGroupWide name="enabled" label="Enabled"/>
-            <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-              <div className="px-4 space-y-1">
-                <Dialog.Title
-                  className="text-lg font-medium text-gray-900 dark:text-white">Events</Dialog.Title>
+            <div className="pb-2">
+              <div className="p-4">
+                <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                  Events
+                </DialogTitle>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   Select what events to trigger on
                 </p>
               </div>
 
-              <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:gap-4 sm:py-2">
+              <div className="p-4 sm:grid sm:gap-4">
                 <EventCheckBoxes />
               </div>
             </div>

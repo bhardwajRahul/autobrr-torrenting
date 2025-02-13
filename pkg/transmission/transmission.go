@@ -1,3 +1,6 @@
+// Copyright (c) 2021-2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package transmission
 
 import (
@@ -5,6 +8,8 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/hekmon/transmissionrpc/v3"
 )
@@ -15,7 +20,7 @@ type Config struct {
 	Username      string
 	Password      string
 	TLSSkipVerify bool
-	Timeout       int
+	Timeout       time.Duration
 }
 
 func New(endpoint *url.URL, cfg *Config) (*transmissionrpc.Client, error) {
@@ -43,7 +48,7 @@ type customTransport struct {
 }
 
 func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	dt := http.DefaultTransport.(*http.Transport).Clone()
+	dt := sharedhttp.Transport
 	if t.TLSSkipVerify {
 		dt.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}

@@ -1,9 +1,9 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Switch } from "@headlessui/react";
+import { Switch, Field, Label, Description } from "@headlessui/react";
 import { classNames } from "@utils";
 
 interface CheckboxProps {
@@ -23,7 +23,7 @@ export const Checkbox = ({
   setValue,
   disabled
 }: CheckboxProps) => (
-  <Switch.Group
+  <Field
     as="div"
     className={classNames(className ?? "py-2", "flex items-center justify-between")}
     onClick={(e) => {
@@ -34,14 +34,14 @@ export const Checkbox = ({
     {(label || description) ? (
       <div className="flex flex-col mr-4">
         {label ? (
-          <Switch.Label as="p" className="text-sm font-medium whitespace-nowrap text-gray-900 dark:text-white" passive>
+          <Label as="p" className="text-sm font-medium whitespace-nowrap text-gray-900 dark:text-white" passive>
             {label}
-          </Switch.Label>
+          </Label>
         ) : null}
         {description ? (
-          <Switch.Description className="text-sm text-gray-500 dark:text-gray-400">
+          <Description className="text-sm text-gray-500 dark:text-gray-400">
             {description}
-          </Switch.Description>
+          </Description>
         ) : null}
       </div>
     ) : null}
@@ -65,7 +65,7 @@ export const Checkbox = ({
         className={classNames(
           value ? "translate-x-6" : "translate-x-[0.15rem]",
           disabled ? "bg-gray-650 dark:bg-gray-800" : "bg-white",
-          "inline-flex items-center align-center h-4 w-4 transform rounded-full transition ring-0 shadow"
+          "inline-flex items-center align-center h-4 w-4 transform rounded-full transition ring-0 shadow-sm"
         )}
       >
         {value
@@ -81,5 +81,5 @@ export const Checkbox = ({
           )}
       </span>
     </Switch>
-  </Switch.Group>
+  </Field>
 );

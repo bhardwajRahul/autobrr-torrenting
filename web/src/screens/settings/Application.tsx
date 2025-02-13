@@ -1,14 +1,17 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "react-hot-toast";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { getRouteApi } from "@tanstack/react-router";
 
 import { APIClient } from "@api/APIClient";
+import { ConfigQueryOptions, UpdatesQueryOptions } from "@api/queries";
+import { SettingsKeys } from "@api/query_keys";
 import { SettingsContext } from "@utils/Context";
 import { Checkbox } from "@components/Checkbox";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { ExternalLink } from "@components/ExternalLink";
 
@@ -17,34 +20,23 @@ import { Section, RowItem } from "./_components";
 function ApplicationSettings() {
   const [settings, setSettings] = SettingsContext.use();
 
-  const { isError:isConfigError, error: configError, data } = useQuery({
-    queryKey: ["config"],
-    queryFn: APIClient.config.get,
-    retry: false,
-    refetchOnWindowFocus: false
-  });
+  const settingsIndexRoute = getRouteApi("/auth/authenticated-routes/settings/");
+  const { queryClient } =  settingsIndexRoute.useRouteContext();
+
+  const { isError:isConfigError, error: configError, data } = useQuery(ConfigQueryOptions());
   if (isConfigError) {
     console.log(configError);
   }
 
-  const { isError, error, data: updateData } = useQuery({
-    queryKey: ["updates"],
-    queryFn: APIClient.updates.getLatestRelease,
-    retry: false,
-    refetchOnWindowFocus: false,
-    enabled: data?.check_for_updates === true
-  });
-
+  const { isError, error, data: updateData } = useQuery(UpdatesQueryOptions(data?.check_for_updates === true));
   if (isError) {
     console.log(error);
   }
 
-  const queryClient = useQueryClient();
-
   const checkUpdateMutation = useMutation({
     mutationFn: APIClient.updates.check,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["updates"] });
+      queryClient.invalidateQueries({ queryKey: SettingsKeys.updates() });
     }
   });
 
@@ -52,7 +44,7 @@ function ApplicationSettings() {
     mutationFn: (value: boolean) => APIClient.config.update({ check_for_updates: value }).then(() => value),
     onSuccess: (_, value: boolean) => {
       toast.custom(t => <Toast type="success" body={`${value ? "You will now be notified of new updates." : "You will no longer be notified of new updates."}`} t={t} />);
-      queryClient.invalidateQueries({ queryKey: ["config"] });
+      queryClient.invalidateQueries({ queryKey: SettingsKeys.config() });
       checkUpdateMutation.mutate();
     }
   });
@@ -63,7 +55,7 @@ function ApplicationSettings() {
       description="Application settings. Change in config.toml and restart to take effect."
     >
       <div className="-mx-4 divide-y divide-gray-150 dark:divide-gray-750">
-        <form className="mt-6 mb-4" action="#" method="POST">
+        <form className="mt-6 pb-4" action="#" method="POST">
           {data && (
             <div className="grid grid-cols-12 gap-2 sm:gap-6 px-4 sm:px-6">
               <div className="col-span-12 sm:col-span-4">

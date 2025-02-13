@@ -1,19 +1,18 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { Menu, Transition } from "@headlessui/react";
+import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
 import { DebounceInput } from "react-debounce-input";
 import {
   Cog6ToothIcon,
   DocumentArrowDownIcon
 } from "@heroicons/react/24/outline";
 import { ExclamationCircleIcon } from "@heroicons/react/24/solid";
-import format from "date-fns/format";
-import { toast } from "react-hot-toast";
+import { format } from "date-fns/format";
 
 import { APIClient } from "@api/APIClient";
 import { Checkbox } from "@components/Checkbox";
@@ -21,8 +20,8 @@ import { baseUrl, classNames, simplifyDate } from "@utils";
 import { SettingsContext } from "@utils/Context";
 import { EmptySimple } from "@components/emptystates";
 import { RingResizeSpinner } from "@components/Icons";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
-
 
 type LogEvent = {
   time: string;
@@ -101,11 +100,11 @@ export const Logs = () => {
 
   return (
     <main>
-      <div className="my-6 max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="my-6 max-w-(--breakpoint-xl) mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold text-black dark:text-white">Logs</h1>
       </div>
 
-      <div className="max-w-screen-xl mx-auto pb-12 px-2 sm:px-4 lg:px-8">
+      <div className="max-w-(--breakpoint-xl) mx-auto pb-12 px-2 sm:px-4 lg:px-8">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-250 dark:border-gray-775 px-2 sm:px-4 pt-3 sm:pt-4 pb-3 sm:pb-4">
           <div className="flex relative mb-3">
             <DebounceInput
@@ -117,7 +116,7 @@ export const Logs = () => {
               }}
               className={classNames(
                 "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
-                "block w-full dark:bg-gray-900 shadow-sm dark:text-gray-100 sm:text-sm rounded-md"
+                "block w-full dark:bg-gray-900 shadow-xs dark:text-gray-100 sm:text-sm rounded-md"
               )}
               placeholder="Enter a regex pattern to filter logs by..."
             />
@@ -140,7 +139,7 @@ export const Logs = () => {
               >
                 <span
                   title={entry.time}
-                  className="font-mono text-gray-500 dark:text-gray-600 mr-2 h-full"
+                  className="font-mono text-gray-500 dark:text-gray-600 h-full"
                 >
                   {format(new Date(entry.time), "HH:mm:ss")}
                 </span>
@@ -151,10 +150,10 @@ export const Logs = () => {
                       "font-mono font-semibold h-full"
                     )}
                   >
-                    {entry.level}
+                    {` ${entry.level} `}
                   </span>
                 ) : null}
-                <span className="ml-2 text-black dark:text-gray-300">
+                <span className="text-black dark:text-gray-300">
                   {entry.message}
                 </span>
               </div>
@@ -163,7 +162,7 @@ export const Logs = () => {
         </div>
       </div>
 
-      <div className="max-w-screen-xl mx-auto pb-10 px-2 sm:px-4 lg:px-8">
+      <div className="max-w-(--breakpoint-xl) mx-auto pb-10 px-2 sm:px-4 lg:px-8">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-250 dark:border-gray-775 px-4 sm:px-6 pt-3 sm:pt-4">
           <LogFiles />
         </div>
@@ -182,7 +181,7 @@ export const LogFiles = () => {
   });
 
   if (isError) {
-    console.log(error);
+    console.log("could not load log files", error);
   }
 
   return (
@@ -194,7 +193,7 @@ export const LogFiles = () => {
         </p>
       </div>
 
-      {data && data.files.length > 0 ? (
+      {data && data.files && data.files.length > 0 ? (
         <ul className="py-3 min-w-full relative">
           <li className="grid grid-cols-12 mb-2 border-b border-gray-200 dark:border-gray-700">
             <div className="hidden sm:block col-span-5 px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -308,12 +307,12 @@ const LogsDropdown = () => {
 
   return (
     <Menu as="div">
-      <Menu.Button className="px-4 py-2">
+      <MenuButton className="px-4 py-2">
         <Cog6ToothIcon
           className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400"
           aria-hidden="true"
         />
-      </Menu.Button>
+      </MenuButton>
       <Transition
         as={Fragment}
         enter="transition ease-out duration-100"
@@ -323,11 +322,11 @@ const LogsDropdown = () => {
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
       >
-        <Menu.Items
-          className="absolute right-0 mt-1 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
+        <MenuItems
+          className="absolute right-0 mt-1 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-hidden"
         >
           <div className="p-3">
-            <Menu.Item>
+            <MenuItem>
               {() => (
                 <Checkbox
                   label="Scroll to bottom on new message"
@@ -335,8 +334,8 @@ const LogsDropdown = () => {
                   setValue={(newValue) => onSetValue("scrollOnNewLog", newValue)}
                 />
               )}
-            </Menu.Item>
-            <Menu.Item>
+            </MenuItem>
+            <MenuItem>
               {() => (
                 <Checkbox
                   label="Indent log lines"
@@ -345,8 +344,8 @@ const LogsDropdown = () => {
                   setValue={(newValue) => onSetValue("indentLogLines", newValue)}
                 />
               )}
-            </Menu.Item>
-            <Menu.Item>
+            </MenuItem>
+            <MenuItem>
               {() => (
                 <Checkbox
                   label="Hide wrapped text"
@@ -355,9 +354,9 @@ const LogsDropdown = () => {
                   setValue={(newValue) => onSetValue("hideWrappedText", newValue)}
                 />
               )}
-            </Menu.Item>
+            </MenuItem>
           </div>
-        </Menu.Items>
+        </MenuItems>
       </Transition>
     </Menu>
   );

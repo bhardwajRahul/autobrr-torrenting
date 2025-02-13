@@ -1,43 +1,43 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Suspense, useEffect, useRef } from "react";
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { getRouteApi, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { Form, Formik, useFormikContext } from "formik";
 import type { FormikErrors, FormikValues } from "formik";
 import { z } from "zod";
-import { toast } from "react-hot-toast";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 import { ChevronRightIcon } from "@heroicons/react/24/solid";
-import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { APIClient } from "@api/APIClient";
+import { FilterByIdQueryOptions } from "@api/queries";
+import { FilterKeys } from "@api/query_keys";
 import { useToggle } from "@hooks/hooks";
 import { classNames } from "@utils";
 import { DOWNLOAD_CLIENTS } from "@domain/constants";
 
 import { DEBUG } from "@components/debug";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { DeleteModal } from "@components/modals";
-import { SectionLoader } from "@components/SectionLoader";
 
-import { filterKeys } from "./List";
-import * as Section from "./sections";
 
 interface tabType {
   name: string;
   href: string;
+  exact?: boolean;
 }
 
 const tabs: tabType[] = [
-  { name: "General", href: "" },
-  { name: "Movies and TV", href: "movies-tv" },
-  { name: "Music", href: "music" },
-  { name: "Advanced", href: "advanced" },
-  { name: "External", href: "external" },
-  { name: "Actions", href: "actions" }
+  { name: "General", href: "/filters/$filterId", exact: true },
+  { name: "Movies and TV", href: "/filters/$filterId/movies-tv" },
+  { name: "Music", href: "/filters/$filterId/music" },
+  { name: "Advanced", href: "/filters/$filterId/advanced" },
+  { name: "External", href: "/filters/$filterId/external" },
+  { name: "Actions", href: "/filters/$filterId/actions" }
 ];
 
 export interface NavLinkProps {
@@ -45,25 +45,35 @@ export interface NavLinkProps {
 }
 
 function TabNavLink({ item }: NavLinkProps) {
-  const location = useLocation();
-  const splitLocation = location.pathname.split("/");
+  // const location = useLocation();
+  // const splitLocation = location.pathname.split("/");
 
   // we need to clean the / if it's a base root path
   return (
-    <NavLink
-      key={item.name}
+    <Link
       to={item.href}
-      end
-      className={({ isActive }) => classNames(
-        "transition border-b-2 whitespace-nowrap py-4 duration-3000 px-1 font-medium text-sm first:rounded-tl-lg last:rounded-tr-lg",
-        isActive
-          ? "text-blue-600 dark:text-white border-blue-600 dark:border-blue-500"
-          : "text-gray-550 hover:text-blue-500 dark:hover:text-white border-transparent"
-      )}
-      aria-current={splitLocation[2] === item.href ? "page" : undefined}
+      activeOptions={{ exact: item.exact }}
+      search={{}}
+      params={{}}
+      // aria-current={splitLocation[2] === item.href ? "page" : undefined}
+      // className="transition border-b-2 whitespace-nowrap py-4 duration-3000 px-1 font-medium text-sm first:rounded-tl-lg last:rounded-tr-lg"
     >
-      {item.name}
-    </NavLink>
+      {({ isActive }) => {
+        return (
+          <span
+            className={
+            classNames(
+              "border-b-2 whitespace-nowrap py-4 px-1 font-medium text-sm first:rounded-tl-lg last:rounded-tr-lg",
+              isActive
+                ? "text-blue-600 dark:text-white border-blue-600 dark:border-blue-500"
+                : "text-gray-550 hover:text-blue-500 dark:hover:text-white border-transparent"
+            )
+          }>
+            {item.name}
+          </span>
+        )
+      }}
+    </Link>
   );
 }
 
@@ -95,7 +105,7 @@ const FormButtonsGroup = ({ values, deleteAction, reset, isLoading }: FormButton
       <div className="px-0.5 mt-8 flex flex-col-reverse sm:flex-row flex-wrap-reverse justify-between">
         <button
           type="button"
-          className="flex items-center justify-center px-4 py-2 rounded-md sm:text-sm transition bg-red-700 dark:bg-red-900 hover:dark:bg-red-700 hover:bg-red-800 text-white focus:outline-none"
+          className="flex items-center justify-center px-4 py-2 rounded-md sm:text-sm transition bg-red-700 dark:bg-red-900 dark:hover:bg-red-700 hover:bg-red-800 text-white focus:outline-hidden"
           onClick={toggleDeleteModal}
         >
           Delete Filter
@@ -105,7 +115,7 @@ const FormButtonsGroup = ({ values, deleteAction, reset, isLoading }: FormButton
           {/* {dirty && <span className="mr-4 text-sm text-gray-500">Unsaved changes..</span>} */}
           <button
             type="button"
-            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 transition rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 transition rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
             onClick={(e) => {
               e.preventDefault();
               reset();
@@ -117,7 +127,7 @@ const FormButtonsGroup = ({ values, deleteAction, reset, isLoading }: FormButton
           </button>
           <button
             type="submit"
-            className="ml-1 sm:ml-4 flex items-center px-4 py-2 border border-transparent transition shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="ml-1 sm:ml-4 flex items-center px-4 py-2 border border-transparent transition shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             Save
           </button>
@@ -275,38 +285,39 @@ const indexerSchema = z.object({
 // Define the schema for the entire object
 const schema = z.object({
   name: z.string(),
+  max_downloads: z.number().optional(),
+  max_downloads_unit: z.string().optional(),
   indexers: z.array(indexerSchema).min(1, { message: "Must select at least one indexer" }),
   actions: z.array(actionSchema),
   external: z.array(externalFilterSchema)
+}).superRefine((value, ctx) => {
+  if (value.max_downloads && value.max_downloads > 0) {
+    if (!value.max_downloads_unit) {
+      ctx.addIssue({
+        message: "Must select Max Downloads Per unit when Max Downloads is greater than 0",
+        code: z.ZodIssueCode.custom,
+        path: ["max_downloads_unit"]
+      });
+    }
+  }
 });
 
 export const FilterDetails = () => {
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { filterId } = useParams<{ filterId: string }>();
 
-  if (filterId === "0" || filterId === undefined) {
-    navigate("/filters");
-  }
+  const filterGetByIdRoute = getRouteApi("/auth/authenticated-routes/filters/$filterId");
+  const { queryClient } =  filterGetByIdRoute.useRouteContext();
 
-  const id = parseInt(filterId!);
-
-  const { isLoading, isError, data: filter } = useSuspenseQuery({
-    queryKey: filterKeys.detail(id),
-    queryFn: ({ queryKey }) => APIClient.filters.getByID(queryKey[2]),
-    refetchOnWindowFocus: false
-  });
-
-  if (isError) {
-    navigate("/filters");
-  }
+  const params = filterGetByIdRoute.useParams()
+  const filterQuery = useSuspenseQuery(FilterByIdQueryOptions(params.filterId))
+  const filter = filterQuery.data
 
   const updateMutation = useMutation({
     mutationFn: (filter: Filter) => APIClient.filters.update(filter),
     onSuccess: (newFilter, variables) => {
-      queryClient.setQueryData(filterKeys.detail(variables.id), newFilter);
+      queryClient.setQueryData(FilterKeys.detail(variables.id), newFilter);
 
-      queryClient.setQueryData<Filter[]>(filterKeys.lists(), (previous) => {
+      queryClient.setQueryData<Filter[]>(FilterKeys.lists(), (previous) => {
         if (previous) {
           return previous.map((filter: Filter) => (filter.id === variables.id ? newFilter : filter));
         }
@@ -322,21 +333,17 @@ export const FilterDetails = () => {
     mutationFn: (id: number) => APIClient.filters.delete(id),
     onSuccess: () => {
       // Invalidate filters just in case, most likely not necessary but can't hurt.
-      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: filterKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
+      queryClient.removeQueries({ queryKey: FilterKeys.detail(params.filterId) });
 
       toast.custom((t) => (
         <Toast type="success" body={`${filter?.name} was deleted`} t={t} />
       ));
 
       // redirect
-      navigate("/filters");
+      navigate({ to: "/filters" });
     }
   });
-
-  if (!filter) {
-    return null;
-  }
 
   const handleSubmit = (data: Filter) => {
     // force set method and type on webhook actions
@@ -360,21 +367,21 @@ export const FilterDetails = () => {
 
   return (
     <main>
-      <div className="my-6 max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center text-black dark:text-white">
+      <div className="my-6 max-w-(--breakpoint-xl) mx-auto px-4 sm:px-6 lg:px-8 flex items-center text-black dark:text-white">
         <h1 className="text-3xl font-bold">
-          <NavLink to="/filters">
+          <Link to="/filters">
             Filters
-          </NavLink>
+          </Link>
         </h1>
         <ChevronRightIcon className="h-6 w-4 shrink-0 sm:shrink sm:h-6 sm:w-6 mx-1" aria-hidden="true" />
         <h1 className="text-3xl font-bold truncate" title={filter.name}>{filter.name}</h1>
       </div>
-      <div className="max-w-screen-xl mx-auto pb-12 px-2 sm:px-6 lg:px-8">
+      <div className="max-w-(--breakpoint-xl) mx-auto pb-12 px-2 sm:px-6 lg:px-8">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-250 dark:border-gray-775">
           <div className="rounded-t-lg bg-gray-125 dark:bg-gray-850 border-b border-gray-200 dark:border-gray-750">
-            <nav className="px-4 -mb-px flex space-x-6 sm:space-x-8 overflow-x-auto">
+            <nav className="px-4 py-4 -mb-px flex space-x-6 sm:space-x-8 overflow-x-auto">
               {tabs.map((tab) => (
-                <TabNavLink item={tab} key={tab.href} />
+                <TabNavLink key={tab.href} item={tab}  />
               ))}
             </nav>
           </div>
@@ -385,6 +392,7 @@ export const FilterDetails = () => {
               enabled: filter.enabled,
               min_size: filter.min_size,
               max_size: filter.max_size,
+              announce_types: filter.announce_types || [],
               delay: filter.delay,
               priority: filter.priority,
               max_downloads: filter.max_downloads,
@@ -392,6 +400,8 @@ export const FilterDetails = () => {
               use_regex: filter.use_regex || false,
               shows: filter.shows,
               years: filter.years,
+              months: filter.months,
+              days: filter.days,
               resolutions: filter.resolutions || [],
               sources: filter.sources || [],
               codecs: filter.codecs || [],
@@ -421,6 +431,8 @@ export const FilterDetails = () => {
               except_tags_match_logic: filter.except_tags_match_logic,
               match_uploaders: filter.match_uploaders,
               except_uploaders: filter.except_uploaders,
+              match_record_labels: filter.match_record_labels,
+              except_record_labels: filter.except_record_labels,
               match_language: filter.match_language || [],
               except_language: filter.except_language || [],
               freeleech: filter.freeleech,
@@ -437,9 +449,14 @@ export const FilterDetails = () => {
               albums: filter.albums,
               origins: filter.origins || [],
               except_origins: filter.except_origins || [],
+              min_seeders: filter.min_seeders,
+              max_seeders: filter.max_seeders,
+              min_leechers: filter.min_leechers,
+              max_leechers: filter.max_leechers,
               indexers: filter.indexers || [],
               actions: filter.actions || [],
-              external: filter.external || []
+              external: filter.external || [],
+              release_profile_duplicate_id: filter.release_profile_duplicate_id,
             } as Filter}
             onSubmit={handleSubmit}
             enableReinitialize={true}
@@ -448,22 +465,13 @@ export const FilterDetails = () => {
             {({ values, dirty, resetForm }) => (
               <Form className="pt-1 pb-4 px-5">
                 <FormErrorNotification />
-                <Suspense fallback={<SectionLoader $size="large" />}>
-                  <Routes>
-                    <Route index element={<Section.General />} />
-                    <Route path="movies-tv" element={<Section.MoviesTv />} />
-                    <Route path="music" element={<Section.Music values={values} />} />
-                    <Route path="advanced" element={<Section.Advanced values={values} />} />
-                    <Route path="external" element={<Section.External />} />
-                    <Route path="actions" element={<Section.Actions filter={filter} values={values} />} />
-                  </Routes>
-                </Suspense>
+                <Outlet />
                 <FormButtonsGroup
                   values={values}
                   deleteAction={deleteAction}
                   dirty={dirty}
                   reset={resetForm}
-                  isLoading={isLoading}
+                  isLoading={false}
                 />
                 <DEBUG values={values} />
               </Form>

@@ -1,13 +1,12 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import { useEffect, useRef, useState } from "react";
-import { toast } from "react-hot-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Field, FieldArray, useFormikContext } from "formik";
-import type { FieldProps, FieldArrayRenderProps, FormikValues } from "formik";
+import type { FieldProps, FieldArrayRenderProps } from "formik";
 import { ChevronRightIcon, BoltIcon } from "@heroicons/react/24/solid";
 
 import { classNames } from "@utils";
@@ -18,25 +17,33 @@ import { ActionTypeNameMap, ActionTypeOptions, DOWNLOAD_CLIENTS } from "@domain/
 import { Select, TextField } from "@components/inputs";
 import { DeleteModal } from "@components/modals";
 import { EmptyListState } from "@components/emptystates";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 
 import { Checkbox } from "@components/Checkbox";
 import { TitleSubtitle } from "@components/headings";
 
-import * as FilterSection from "./_components";
-import * as FilterActions from "./action_components";
+import { DownloadClientsQueryOptions } from "@api/queries";
+import { FilterHalfRow, FilterLayout, FilterPage, FilterSection } from "@screens/filters/sections/_components.tsx";
+import {
+  Arr,
+  Deluge, Exec,
+  Porla,
+  QBittorrent,
+  RTorrent,
+  SABnzbd, Test,
+  Transmission, WatchFolder, WebHook
+} from "@screens/filters/sections/action_components";
 
-interface FilterActionsProps {
-  filter: Filter;
-  values: FormikValues;
-}
+// interface FilterActionsProps {
+//   filter: Filter;
+//   values: FormikValues;
+// }
 
-export function Actions({ filter, values }: FilterActionsProps) {
-  const { data } = useQuery({
-    queryKey: ["filters", "download_clients"],
-    queryFn: () => APIClient.download_clients.getAll(),
-    refetchOnWindowFocus: false
-  });
+export function Actions() {
+  const { values } = useFormikContext<Filter>();
+
+  const { data } = useQuery(DownloadClientsQueryOptions());
 
   const newAction: Action = {
     id: 0,
@@ -52,8 +59,10 @@ export function Actions({ filter, values }: FilterActionsProps) {
     save_path: "",
     paused: false,
     ignore_rules: false,
+    first_last_piece_prio: false,
     skip_hash_check: false,
-    content_layout: "" || undefined,
+    content_layout: "",
+    priority: "",
     limit_upload_speed: 0,
     limit_download_speed: 0,
     limit_ratio: 0,
@@ -62,13 +71,14 @@ export function Actions({ filter, values }: FilterActionsProps) {
     reannounce_delete: false,
     reannounce_interval: 7,
     reannounce_max_attempts: 25,
-    filter_id: filter.id,
+    filter_id: values.id,
     webhook_host: "",
     webhook_type: "",
     webhook_method: "",
     webhook_data: "",
     webhook_headers: [],
     external_download_client_id: 0,
+    external_download_client: "",
     client_id: 0
   };
 
@@ -83,10 +93,10 @@ export function Actions({ filter, values }: FilterActionsProps) {
                 title="Actions"
                 subtitle="Add to download clients or run custom commands."
               />
-              <div className="ml-4 mt-4 flex-shrink-0">
+              <div className="ml-4 mt-4 shrink-0">
                 <button
                   type="button"
-                  className="relative inline-flex items-center px-4 py-2 border border-transparent transition shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                  className="relative inline-flex items-center px-4 py-2 border border-transparent transition shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                   onClick={() => push(newAction)}
                 >
                   <BoltIcon
@@ -139,35 +149,35 @@ const TypeForm = (props: ClientActionProps) => {
   switch (action.type) {
   // torrent clients
   case "QBITTORRENT":
-    return <FilterActions.QBittorrent {...props} />;
+    return <QBittorrent {...props} />;
   case "DELUGE_V1":
   case "DELUGE_V2":
-    return <FilterActions.Deluge {...props} />;
+    return <Deluge {...props} />;
   case "RTORRENT":
-    return <FilterActions.RTorrent {...props} />;
+    return <RTorrent {...props} />;
   case "TRANSMISSION":
-    return <FilterActions.Transmission {...props} />;
+    return <Transmission {...props} />;
   case "PORLA":
-    return <FilterActions.Porla {...props} />;
+    return <Porla {...props} />;
   // arrs
   case "RADARR":
   case "SONARR":
   case "LIDARR":
   case "WHISPARR":
   case "READARR":
-    return <FilterActions.Arr {...props} />;
+    return <Arr {...props} />;
   // nzb
   case "SABNZBD":
-    return <FilterActions.SABnzbd {...props} />;
+    return <SABnzbd {...props} />;
   // autobrr actions
   case "TEST":
-    return <FilterActions.Test />;
+    return <Test />;
   case "EXEC":
-    return <FilterActions.Exec {...props} />;
+    return <Exec {...props} />;
   case "WATCH_FOLDER":
-    return <FilterActions.WatchFolder {...props} />;
+    return <WatchFolder {...props} />;
   case "WEBHOOK":
-    return <FilterActions.WebHook {...props} />;
+    return <WebHook {...props} />;
   default:
     // TODO(stacksmash76): Indicate error
     return null;
@@ -237,7 +247,7 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
                 {action.name}
               </p>
             </div>
-            <div className="flex-shrink-0 sm:mt-0 sm:ml-5">
+            <div className="shrink-0 sm:mt-0 sm:ml-5">
               <div className="flex overflow-hidden -space-x-1">
                 <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
                   {ActionTypeNameMap[action.type]}
@@ -245,7 +255,7 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
               </div>
             </div>
           </div>
-          <div className="ml-5 flex-shrink-0">
+          <div className="ml-5 shrink-0">
             <ChevronRightIcon
               className="h-5 w-5 text-gray-400"
               aria-hidden="true"
@@ -266,13 +276,13 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
             text="Are you sure you want to remove this action? This action cannot be undone."
           />
 
-          <FilterSection.Page gap="sm:gap-y-6">
-            <FilterSection.Section
+          <FilterPage gap="sm:gap-y-6">
+            <FilterSection
               title="Action"
               subtitle="Define the download client for your action and its name"
             >
-              <FilterSection.Layout>
-                <FilterSection.HalfRow>
+              <FilterLayout>
+                <FilterHalfRow>
                   <Select
                     name={`actions.${idx}.type`}
                     label="Action type"
@@ -280,20 +290,20 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
                     options={ActionTypeOptions}
                     tooltip={<div><p>Select the action type for this action.</p></div>}
                   />
-                </FilterSection.HalfRow>
+                </FilterHalfRow>
 
-                <FilterSection.HalfRow>
+                <FilterHalfRow>
                   <TextField name={`actions.${idx}.name`} label="Name" />
-                </FilterSection.HalfRow>
-              </FilterSection.Layout>
-            </FilterSection.Section>
+                </FilterHalfRow>
+              </FilterLayout>
+            </FilterSection>
 
             <TypeForm action={action} clients={clients} idx={idx} />
 
             <div className="pt-6 pb-4 flex space-x-2 justify-between">
               <button
                 type="button"
-                className="inline-flex items-center justify-center px-4 py-2 rounded-md sm:text-sm bg-red-700 dark:bg-red-900 hover:dark:bg-red-700 hover:bg-red-800 text-white focus:outline-none"
+                className="inline-flex items-center justify-center px-4 py-2 rounded-md sm:text-sm bg-red-700 dark:bg-red-900 dark:hover:bg-red-700 hover:bg-red-800 text-white focus:outline-hidden"
                 onClick={toggleDeleteModal}
               >
                 Remove Action
@@ -301,13 +311,13 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
 
               <button
                 type="button"
-                className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none"
+                className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden"
                 onClick={toggleEdit}
               >
                 Close
               </button>
             </div>
-          </FilterSection.Page>
+          </FilterPage>
         </div>
       )}
     </li>

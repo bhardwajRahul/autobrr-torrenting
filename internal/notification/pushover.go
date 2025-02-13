@@ -1,9 +1,10 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package notification
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/rs/zerolog"
 )
@@ -30,22 +32,32 @@ type pushoverMessage struct {
 
 type pushoverSender struct {
 	log      zerolog.Logger
-	Settings domain.Notification
+	Settings *domain.Notification
 	baseUrl  string
-	builder  NotificationBuilderPlainText
+	builder  MessageBuilderHTML
+
+	httpClient *http.Client
 }
 
-func NewPushoverSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
+func (s *pushoverSender) Name() string {
+	return "pushover"
+}
+
+func NewPushoverSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
 	return &pushoverSender{
 		log:      log.With().Str("sender", "pushover").Logger(),
 		Settings: settings,
 		baseUrl:  "https://api.pushover.net/1/messages.json",
+		builder:  MessageBuilderHTML{},
+		httpClient: &http.Client{
+			Timeout:   time.Second * 30,
+			Transport: sharedhttp.Transport,
+		},
 	}
 }
 
 func (s *pushoverSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
-
-	title := s.builder.BuildTitle(event)
+	title := BuildTitle(event)
 	message := s.builder.BuildBody(payload)
 
 	m := pushoverMessage{
@@ -74,33 +86,28 @@ func (s *pushoverSender) Send(event domain.NotificationEvent, payload domain.Not
 
 	req, err := http.NewRequest(http.MethodPost, s.baseUrl, strings.NewReader(data.Encode()))
 	if err != nil {
-		s.log.Error().Err(err).Msgf("pushover client request error: %v", event)
-		return errors.Wrap(err, "could not create request")
+		return errors.Wrap(err, "could not create request for event: %v payload: %v", event, payload)
 	}
 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("User-Agent", "autobrr")
 
-	client := http.Client{Timeout: 30 * time.Second}
-	res, err := client.Do(req)
+	res, err := s.httpClient.Do(req)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("pushover client request error: %v", event)
-		return errors.Wrap(err, "could not make request: %+v", req)
-	}
-
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		s.log.Error().Err(err).Msgf("pushover client request error: %v", event)
-		return errors.Wrap(err, "could not read data")
+		return errors.Wrap(err, "client request error for event: %v payload: %v", event, payload)
 	}
 
 	defer res.Body.Close()
 
-	s.log.Trace().Msgf("pushover status: %v response: %v", res.StatusCode, string(body))
+	s.log.Trace().Msgf("pushover response status: %d", res.StatusCode)
 
 	if res.StatusCode != http.StatusOK {
-		s.log.Error().Err(err).Msgf("pushover client request error: %v", string(body))
-		return errors.New("bad status: %v body: %v", res.StatusCode, string(body))
+		body, err := io.ReadAll(bufio.NewReader(res.Body))
+		if err != nil {
+			return errors.Wrap(err, "could not read body for event: %v payload: %v", event, payload)
+		}
+
+		return errors.New("unexpected status: %v body: %v", res.StatusCode, string(body))
 	}
 
 	s.log.Debug().Msg("notification successfully sent to pushover")

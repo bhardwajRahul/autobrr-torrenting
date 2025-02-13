@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package database
@@ -23,7 +23,9 @@ type DB struct {
 	handler *sql.DB
 	lock    sync.RWMutex
 	ctx     context.Context
-	cancel  func()
+	cfg     *domain.Config
+
+	cancel func()
 
 	Driver string
 	DSN    string
@@ -36,6 +38,7 @@ func NewDB(cfg *domain.Config, log logger.Logger) (*DB, error) {
 		// set default placeholder for squirrel to support both sqlite and postgres
 		squirrel: sq.StatementBuilder.PlaceholderFormat(sq.Dollar),
 		log:      log.With().Str("module", "database").Str("type", cfg.DatabaseType).Logger(),
+		cfg:      cfg,
 	}
 	db.ctx, db.cancel = context.WithCancel(context.Background())
 
@@ -126,13 +129,9 @@ type Tx struct {
 	handler *DB
 }
 
-type ILikeDynamic interface {
-	ToSql() (sql string, args []interface{}, err error)
-}
-
 // ILike is a wrapper for sq.Like and sq.ILike
 // SQLite does not support ILike but postgres does so this checks what database is being used
-func (db *DB) ILike(col string, val string) ILikeDynamic {
+func (db *DB) ILike(col string, val string) sq.Sqlizer {
 	//if databaseDriver == "sqlite" {
 	if db.Driver == "sqlite" {
 		return sq.Like{col: val}
